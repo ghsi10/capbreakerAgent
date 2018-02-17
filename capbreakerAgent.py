@@ -27,7 +27,7 @@ def saveHandshake(handshake):
     byteFile += bytearray.fromhex(handshake['anonce'])
     byteFile += bytearray.fromhex(handshake['station'].replace(":", " "))
     byteFile += bytearray.fromhex(handshake['snonce'])
-    eapolLen = int((len(handshake['eapol'].replace(" ", "")) / 2))
+    eapolLen = int(len(handshake['eapol']) / 2)
     byteFile += eapolLen.to_bytes(2, byteorder='little')
     byteFile += bytearray.fromhex(handshake['eapol'])
     for i in range(eapolLen, 256):
