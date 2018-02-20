@@ -3,6 +3,8 @@ from time import sleep
 
 # from threading import Thread
 
+username = "admin"
+password = "admin"
 server = "http://127.0.0.1"
 hashcatLocation = "./hashcat"
 mode = 3
@@ -15,6 +17,7 @@ except ImportError:
 
 
 def saveHandshake(handshake):
+    """Save Handshake file in hashcatLocation"""
     byteFile = bytearray.fromhex("484350580400000000")
     essidLen = len(handshake['essid'])
     byteFile += essidLen.to_bytes(1, byteorder='little')
@@ -39,13 +42,16 @@ def saveHandshake(handshake):
 
 if __name__ == "__main__":
     # Login
-    while True:
-        username = input("Enter your username: ")
-        password = input("Enter your password: ")
-        response = requests.post(server + "/agent/login", auth=(username, password))
-        if response.status_code == 200 and response.text == "login success":
-            break
-        print("Invalid username and password.")
+    response = requests.post(server + "/agent/login", auth=(username, password))
+    if response.status_code != 200 or response.text != "login success":
+        while True:
+            username = input("Enter your username: ")
+            password = input("Enter your password: ")
+            response = requests.post(server + "/agent/login", auth=(username, password))
+            if response.status_code == 200 and response.text == "login success":
+                print("login success")
+                break
+            print("Invalid username and password.")
     # Get task
     while True:
         response = requests.post(server + "/agent/getNextTask", auth=(username, password))
@@ -57,7 +63,7 @@ if __name__ == "__main__":
             sleep(10)
         elif response.status_code == 204:
             print("not found task")
-            sleep(10)
+            sleep(30)
         else:
             print("unexpected error occurred")
             exit(0)
