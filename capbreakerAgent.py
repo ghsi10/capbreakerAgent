@@ -1,4 +1,6 @@
 import pip
+from io import BytesIO
+from zipfile import ZipFile
 from time import sleep
 
 # from threading import Thread
@@ -6,6 +8,7 @@ from time import sleep
 username = "admin"
 password = "admin"
 server = "http://127.0.0.1"
+haschatUrl = "http://caprecovery.kuchi.be/test2.zip"
 hashcatLocation = "./hashcat"
 mode = 3
 
@@ -14,6 +17,14 @@ try:
 except ImportError:
     pip.main(['install', 'requests'])
     import requests
+
+
+def downloadHashcat():
+    """Download hashcat"""
+    request = requests.get(haschatUrl)
+    zipFile = ZipFile(BytesIO(request.content))
+    zipFile.extractall()
+    zipFile.close()
 
 
 def saveHandshake(handshake):
@@ -54,6 +65,8 @@ if __name__ == "__main__":
             print("Invalid username and password.")
     # Get task
     while True:
+        downloadHashcat()
+
         response = requests.post(server + "/agent/getNextTask", auth=(username, password))
         if response.status_code == 200:
             chunk = response.json()
