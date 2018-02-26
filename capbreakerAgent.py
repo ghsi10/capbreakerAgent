@@ -5,12 +5,12 @@ from zipfile import ZipFile
 from time import sleep
 import subprocess
 
-username = 'admin'
-password = 'admin'
-server = 'https://capbreaker.herokuapp.com'
-hashcatUrl = 'http://caprecovery.kuchi.be/test2.zip'
+username = 'username'
+password = 'password'
+server = 'http://127.0.0.1'
+hashcatUrl = 'http://127.0.0.1/hashcat.zip'
 hashcatLocation = './hashcat'
-mode = 3
+hashcatMode = 3
 
 try:
     import requests
@@ -22,9 +22,10 @@ except ImportError:
 class Hashcat:
     """ Hashcat class """
 
-    def __init__(self, location='./hashcat', url=''):
+    def __init__(self, location='./hashcat', url='', mode=3):
         self.url = url
         self.location = location
+        self.mode = mode
         self.password = ''
         self.foundPhrase = ''
         if not os.path.isfile(self.location + '/hashcat64.exe'):
@@ -68,26 +69,30 @@ class Hashcat:
         self.foundPhrase = (handshake['bssid'].replace(':', '') + ':').lower()
         self.foundPhrase += (handshake['station'].replace(':', '') + ':').lower()
         self.foundPhrase += handshake['essid']
-        process = subprocess.Popen(
-            'hashcat/hashcat64.exe -m 2500 -w 3 hashcat/hs.hccapx --force -a 3 05245?d?d?d', stdout=subprocess.PIPE)
+        commands = self.location + '/hashcat64.exe ' + self.location + '/hs.hccapx' + ' -w ' + str(self.mode)
+        commands += ' -m 2500 --force --potfile-disable --restore-disable --status --status-timer=20 --logfile-disable'
+        for command in chunk['commands']:
+            commands += ' ' + command
+        process = subprocess.Popen(commands, stdout=subprocess.PIPE)
         while True:
             output = process.stdout.readline().decode()
             if not output:
                 print("Hashcat exeption.")
                 break
-            if 'Exhausted' in output or self.foundPhrase in output:
+            if 'Running' in output:
+                requests.post(server + '/agent/keepAlive', headers={'uuid': chunk['uuid']}, auth=(username, password))
+            elif 'Exhausted' in output or self.foundPhrase in output:
                 if self.foundPhrase in output:
                     self.password = output.split(':')[4]
                     process.kill()
                 requests.post(server + '/agent/setResult', headers={'uuid': chunk['uuid']},
-                              data={'password': hashcat.password},
-                              auth=(username, password))
+                              data={'password': hashcat.password}, auth=(username, password))
                 break
 
 
 if __name__ == '__main__':
     print('Cap Breaker Agent.\n')
-    hashcat = Hashcat(hashcatLocation, hashcatUrl)
+    hashcat = Hashcat(hashcatLocation, hashcatUrl, hashcatMode)
     while True:
         print('Looking for task.')
         try:
