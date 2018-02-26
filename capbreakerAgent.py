@@ -22,12 +22,12 @@ except ImportError:
 class Hashcat:
     """ Hashcat class """
 
-    def __init__(self, location='./hashcat', url='', mode=3):
+    def __init__(self, location='./hashcat', url=None, mode=3):
         self.url = url
         self.location = location
         self.mode = mode
-        self.password = ''
-        self.foundPhrase = ''
+        self.password = None
+        self.foundPhrase = None
         if not os.path.isfile(self.location + '/hashcat64.exe'):
             self.download()
 
