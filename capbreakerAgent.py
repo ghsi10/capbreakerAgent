@@ -1,16 +1,14 @@
-import os
-import subprocess
-from io import BytesIO
-from time import sleep
-from zipfile import ZipFile
-
 import pip
-from requests import RequestException
+import os
+from io import BytesIO
+from zipfile import ZipFile
+import subprocess
+from time import sleep
 
-username = 'username'
-password = 'password'
-server = 'http://127.0.0.1'
-hashcat_url = 'http://127.0.0.1/hashcat.zip'
+username = 'admin'  # '[[${username}]]'
+password = 'admin'  # '[[${password}]]'
+server = 'http://127.0.0.1'  # '[[${server}]]'
+hashcat_url = 'http://caprecovery.kuchi.be/hashcat.zip'  # '[[${url}]]'
 hashcat_location = None
 hashcat_mode = 3
 
@@ -37,7 +35,7 @@ class Hashcat:
 
     def download(self):
         """ Download hashcat """
-        print('Downloading hashcat.')
+        print('Downloading hashcat...')
         request = requests.get(self.url)
         zip_file = ZipFile(BytesIO(request.content))
         zip_file.extractall(self.location)
@@ -88,10 +86,11 @@ class Hashcat:
             elif 'Exhausted' in output or self.found_phrase in output:
                 if self.found_phrase in output:
                     self.password = output.split(':')[4]
-                process.kill()  # kill the process whether we found the phrase or not
+                    process.kill()
                 requests.post(server + '/agent/setResult', headers={'uuid': chunk['uuid']},
                               data={'password': hashcat.password}, auth=(username, password))
                 break
+        sleep(5)
 
 
 if __name__ == '__main__':
@@ -101,14 +100,13 @@ if __name__ == '__main__':
         print('Looking for task.')
         try:
             response = requests.post(server + '/agent/getTask', auth=(username, password))
-        except RequestException:
+        except requests.RequestException:
             print('Unable connect to server. please try again later.')
             break
         if response.status_code == 200:
             print('Task found, starting scan...')
             hashcat.scan(response.json())
             print('Task done')
-            sleep(5)
         elif response.status_code == 204:
             print('Task not found, will try again in 60 seconds.')
             sleep(60)
