@@ -11,7 +11,7 @@ username = 'username'
 password = 'password'
 server = 'http://127.0.0.1'
 hashcat_url = 'http://127.0.0.1/hashcat.zip'
-hashcat_location = './hashcat'
+hashcat_location = None
 hashcat_mode = 3
 
 try:
@@ -24,9 +24,11 @@ except ImportError:
 class Hashcat:
     """ Hashcat class """
 
-    def __init__(self, location='./hashcat', url=None, mode=3):
+    def __init__(self, location=None, url=None, mode=3):
         self.url = url
         self.location = location
+        if self.location is None:
+            self.location = os.getenv('APPDATA') + '\\capbreaker'
         self.mode = mode
         self.password = None
         self.found_phrase = None
