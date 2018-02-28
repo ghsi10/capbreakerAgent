@@ -1,0 +1,154 @@
+# Compiled/optimized source / DLLs #
+####################################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / Packaging #
+############################
+*.7z
+*.dmg
+*.gz
+*.iso
+*.rar
+*.tar
+*.zip
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.manifest
+*.spec
+
+# OS generated / IDE #
+######################
+.DS_Store
+ehthumbs.db
+Icon
+Thumbs.db
+.tmtags
+.idea
+tags
+vendor.tags
+tmtagsHistory
+*.sublime-project
+*.sublime-workspace
+.bundle
+
+# Installer logs #
+##################
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / Coverage reports #
+################################
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Translations #
+################
+*.mo
+*.pot
+
+# Django #
+##########
+.static_storage/
+.media/
+local_settings.py
+
+# Databases #
+#############
+*.sqlite
+*.sqlite3
+
+# Flask stuff #
+###############
+instance/
+.webassets-cache
+
+# Scrapy stuff #
+################
+.scrapy
+
+# Sphinx documentation #
+########################
+docs/_build/
+
+# PyBuilder #
+#############
+target/
+
+# Jupyter notebook #
+####################
+.ipynb_checkpoints
+
+# pyenv #
+#########
+.python-version
+
+# elery beat schedule file #
+############################
+celerybeat-schedule
+
+# SageMath parsed files #
+#########################
+*.sage.py
+
+# Environments #
+################
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings #
+###########################
+.spyderproject
+.spyproject
+
+# Rope project settings #
+#########################
+.ropeproject
+
+# mkdocs documentation #
+########################
+/site
+
+# mypy #
+########
+.mypy_cache/
+
+# logs #
+########
+*.log
+logs
