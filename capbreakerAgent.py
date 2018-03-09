@@ -1,16 +1,13 @@
-import pip
+import logging
 import os
-from io import BytesIO
-from zipfile import ZipFile
+import platform
+import shutil
 import subprocess
+from io import BytesIO
 from time import sleep
+from zipfile import ZipFile
 
-username = 'admin'  # '[[${username}]]'
-password = 'admin'  # '[[${password}]]'
-server = 'http://127.0.0.1'  # '[[${server}]]'
-hashcat_url = 'http://caprecovery.kuchi.be/hashcat.zip'  # '[[${url}]]'
-hashcat_location = None
-hashcat_mode = 3
+import pip
 
 try:
     import requests
@@ -18,68 +15,84 @@ except ImportError:
     pip.main(['install', 'requests'])
     import requests
 
+username = 'admin'  # '[[${username}]]'
+password = 'admin'  # '[[${password}]]'
+server = 'http://127.0.0.1'  # '[[${server}]]'
+hashcat_url = 'http://caprecovery.kuchi.be/hashcat.zip'  # '[[${url}]]'
+hashcat_mode = 3
+working_folder_suffix = '\\.capbreaker'
+
+logging.basicConfig(format='[%(asctime)s] %(levelname)-8s | %(message)s',
+                    datefmt='%d-%b-%Y %H:%M:%S',
+                    level=logging.INFO)
+log = logging.getLogger()
+
 
 class Hashcat:
     """ Hashcat class """
 
-    def __init__(self, location=None, url=None, mode=3):
+    def __init__(self, path, url=None, mode=3):
+        """ Initialize parameters and working folder """
+
         self.url = url
-        self.location = location
-        if self.location is None:
-            self.location = os.getenv('APPDATA') + '\\capbreaker'
+        self.path = path
         self.mode = mode
         self.password = None
         self.found_phrase = None
-        if not os.path.isfile(self.location + '/hashcat64.exe'):
-            self.download()
+        self._init_working_folder()
 
-    def download(self):
-        """ Download hashcat """
-        print('Downloading hashcat...')
+    def _init_working_folder(self, force=False):
+        """ Download and extract hashcat """
+
+        if os.path.exists(self.path) and not force:
+            return
+        log.info('Downloading and extracting hashcat...')
+        shutil.rmtree(self.path, ignore_errors=True)
         request = requests.get(self.url)
-        zip_file = ZipFile(BytesIO(request.content))
-        zip_file.extractall(self.location)
-        zip_file.close()
-        print('Download completed.')
+        with ZipFile(BytesIO(request.content)) as zip_file:
+            zip_file.extractall(self.path)
 
-    def handshake(self, handshake):
-        """ Save Handshake file in hashcat_location """
-        byte_file = bytearray.fromhex('484350580400000000')
-        byte_file += len(handshake['essid']).to_bytes(1, byteorder='little')
-        byte_file += str.encode(handshake['essid'])
+    def _create_handshake_file(self, handshake):
+        """ Create handshake file for hashcat in working folder """
+
+        log.info('Creating handshake file for hashcat...')
+        raw_bytes = bytearray.fromhex('484350580400000000')
+        raw_bytes += len(handshake['essid']).to_bytes(1, byteorder='little')
+        raw_bytes += str.encode(handshake['essid'])
         for i in range(len(handshake['essid']), 32):
-            byte_file += bytearray.fromhex('00')
-        byte_file += bytearray.fromhex(handshake['keyVersion'])
-        byte_file += bytearray.fromhex(handshake['keyMic'])
-        byte_file += bytearray.fromhex(handshake['bssid'].replace(':', ''))
-        byte_file += bytearray.fromhex(handshake['anonce'])
-        byte_file += bytearray.fromhex(handshake['station'].replace(':', ''))
-        byte_file += bytearray.fromhex(handshake['snonce'])
+            raw_bytes += bytearray.fromhex('00')
+        raw_bytes += bytearray.fromhex(handshake['keyVersion'])
+        raw_bytes += bytearray.fromhex(handshake['keyMic'])
+        raw_bytes += bytearray.fromhex(handshake['bssid'].replace(':', ''))
+        raw_bytes += bytearray.fromhex(handshake['anonce'])
+        raw_bytes += bytearray.fromhex(handshake['station'].replace(':', ''))
+        raw_bytes += bytearray.fromhex(handshake['snonce'])
         eapol_len = int(len(handshake['eapol']) / 2)
-        byte_file += eapol_len.to_bytes(2, byteorder='little')
-        byte_file += bytearray.fromhex(handshake['eapol'])
+        raw_bytes += eapol_len.to_bytes(2, byteorder='little')
+        raw_bytes += bytearray.fromhex(handshake['eapol'])
         for i in range(eapol_len, 256):
-            byte_file += bytearray.fromhex('00')
-        new_file = open(self.location + '/hs.hccapx', 'wb')
-        new_file.write(byte_file)
-        new_file.close()
+            raw_bytes += bytearray.fromhex('00')
+        with open(self.path + '/hs.hccapx', 'wb') as handshake_file:
+            handshake_file.write(raw_bytes)
 
     def scan(self, chunk):
         """ Start scan with hashcat """
+
         handshake = chunk['handshake']
-        self.handshake(handshake)
+        self._create_handshake_file(handshake)
         self.found_phrase = (handshake['bssid'].replace(':', '') + ':').lower()
         self.found_phrase += (handshake['station'].replace(':', '') + ':').lower()
         self.found_phrase += handshake['essid']
-        commands = self.location + '/hashcat64.exe ' + self.location + '/hs.hccapx' + ' -w ' + str(self.mode)
+        commands = self.path + '/hashcat64.exe ' + self.path + '/hs.hccapx' + ' -w ' + str(self.mode)
         commands += ' -m 2500 --force --potfile-disable --restore-disable --status --status-timer=20 --logfile-disable'
         for command in chunk['commands']:
             commands += ' ' + command
-        process = subprocess.Popen(commands, cwd=self.location, stdout=subprocess.PIPE)
+        process = subprocess.Popen(commands, cwd=self.path, stdout=subprocess.PIPE)
         while True:
             output = process.stdout.readline().decode()
             if not output:
-                print("Hashcat exception.")
+                log.error("Hashcat failed with exception. Rebuilding working folder...")
+                self._init_working_folder(force=True)
                 break
             if 'Running' in output:
                 if requests.post(server + '/agent/keepAlive', headers={'uuid': chunk['uuid']},
@@ -90,28 +103,37 @@ class Hashcat:
                     self.password = output.split(':')[4]
                 requests.post(server + '/agent/setResult', headers={'uuid': chunk['uuid']},
                               data={'password': hashcat.password}, auth=(username, password))
+                log.info('Finished working on task.')
                 break
         process.terminate()
-        sleep(5)
 
 
 if __name__ == '__main__':
-    print('Cap Breaker Agent.\n')
-    hashcat = Hashcat(hashcat_location, hashcat_url, hashcat_mode)
+    log.info('Cap breaker agent initializing...')
+    os_type = platform.system()
+    working_folder = os.getenv('APPDATA') + working_folder_suffix if 'Windows' in os_type else os.path.expanduser(
+        '~') + working_folder_suffix
+    log.info('Server: ' + server)
+    log.info('Local OS: ' + os_type)
+    log.info('Local working folder is set to: ' + working_folder)
+    hashcat = Hashcat(working_folder, hashcat_url, hashcat_mode)
+    log.info('Done.\n')
+
     while True:
-        print('Looking for task.')
+        log.info('Looking for a new task...')
         try:
             response = requests.post(server + '/agent/getTask', auth=(username, password))
         except requests.RequestException:
-            print('Unable connect to server. please try again later.')
+            log.fatal('Unable connect to server. Please try again later. Exiting...')
+            sleep(2)
             break
         if response.status_code == 200:
-            print('Task found, starting scan...')
+            log.info('Task found, starting scan...')
             hashcat.scan(response.json())
-            print('Task done')
         elif response.status_code == 204:
-            print('Task not found, will try again in 60 seconds.')
+            log.warning('Task not found, will try again in 60 seconds.')
             sleep(60)
         else:
-            print('Unexpected error occurred.')
+            log.fatal('Unexpected error occurred. Exiting...')
+            sleep(2)
             break
