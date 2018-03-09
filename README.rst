@@ -2,7 +2,7 @@
 
 -----
 
-Agent for redistributing hash cracking.
+Agent for capbreaker.
 
 -----
 
@@ -14,11 +14,11 @@ Features
 
 Prerequisites
 =============
-* JDK 1.8
+* Python 3.x
 
 Deployment
 ==========
-*TBD*
+Run it.
 
 Authors
 =======
