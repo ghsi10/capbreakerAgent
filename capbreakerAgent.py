@@ -1,13 +1,12 @@
+import pip
 import logging
 import os
 import platform
 import shutil
 import subprocess
 from io import BytesIO
-from time import sleep
 from zipfile import ZipFile
-
-import pip
+from time import sleep
 
 try:
     import requests
@@ -20,11 +19,9 @@ password = 'admin'  # '[[${password}]]'
 server = 'http://127.0.0.1'  # '[[${server}]]'
 hashcat_url = 'http://caprecovery.kuchi.be/hashcat.zip'  # '[[${url}]]'
 hashcat_mode = 3
-working_folder_suffix = '\\.capbreaker'
 
 logging.basicConfig(format='[%(asctime)s] %(levelname)-8s | %(message)s',
-                    datefmt='%d-%b-%Y %H:%M:%S',
-                    level=logging.INFO)
+                    datefmt='%d-%b-%Y %H:%M:%S', level=logging.INFO)
 log = logging.getLogger()
 
 
@@ -33,9 +30,8 @@ class Hashcat:
 
     def __init__(self, path, url=None, mode=3):
         """ Initialize parameters and working folder """
-
-        self.url = url
         self.path = path
+        self.url = url
         self.mode = mode
         self.password = None
         self.found_phrase = None
@@ -43,7 +39,6 @@ class Hashcat:
 
     def _init_working_folder(self, force=False):
         """ Download and extract hashcat """
-
         if os.path.exists(self.path) and not force:
             return
         log.info('Downloading and extracting hashcat...')
@@ -54,8 +49,7 @@ class Hashcat:
 
     def _create_handshake_file(self, handshake):
         """ Create handshake file for hashcat in working folder """
-
-        log.info('Creating handshake file for hashcat...')
+        log.debug('Creating handshake file for hashcat...')
         raw_bytes = bytearray.fromhex('484350580400000000')
         raw_bytes += len(handshake['essid']).to_bytes(1, byteorder='little')
         raw_bytes += str.encode(handshake['essid'])
@@ -77,17 +71,17 @@ class Hashcat:
 
     def scan(self, chunk):
         """ Start scan with hashcat """
-
         handshake = chunk['handshake']
         self._create_handshake_file(handshake)
         self.found_phrase = (handshake['bssid'].replace(':', '') + ':').lower()
         self.found_phrase += (handshake['station'].replace(':', '') + ':').lower()
         self.found_phrase += handshake['essid']
-        commands = self.path + '/hashcat64.exe ' + self.path + '/hs.hccapx' + ' -w ' + str(self.mode)
+        suffix = '.exe ' if 'Windows' in platform.system() else '.bin '
+        commands = self.path + '/hashcat' + suffix + self.path + '/hs.hccapx' + ' -w ' + str(self.mode)
         commands += ' -m 2500 --force --potfile-disable --restore-disable --status --status-timer=20 --logfile-disable'
         for command in chunk['commands']:
             commands += ' ' + command
-        process = subprocess.Popen(commands, cwd=self.path, stdout=subprocess.PIPE)
+        process = subprocess.Popen(commands, cwd=self.path, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         while True:
             output = process.stdout.readline().decode()
             if not output:
@@ -97,8 +91,9 @@ class Hashcat:
             if 'Running' in output:
                 if requests.post(server + '/agent/keepAlive', headers={'uuid': chunk['uuid']},
                                  auth=(username, password)).status_code != 200:
+                    log.info('Stoped working on task.')
                     break
-            elif 'Exhausted' in output or self.found_phrase in output:
+            if 'Exhausted' in output or self.found_phrase in output:
                 if self.found_phrase in output:
                     self.password = output.split(':')[4]
                 requests.post(server + '/agent/setResult', headers={'uuid': chunk['uuid']},
@@ -106,21 +101,23 @@ class Hashcat:
                 log.info('Finished working on task.')
                 break
         process.terminate()
+        sleep(3)
 
 
 if __name__ == '__main__':
     log.info('Cap breaker agent initializing...')
     os_type = platform.system()
-    working_folder = os.getenv('APPDATA') + working_folder_suffix if 'Windows' in os_type else os.path.expanduser(
-        '~') + working_folder_suffix
+    working_folder = os.getenv('APPDATA') if 'Windows' in os_type else os.path.expanduser('~')
+    working_folder += '\\.capbreaker'
     log.info('Server: ' + server)
     log.info('Local OS: ' + os_type)
     log.info('Local working folder is set to: ' + working_folder)
+    log.info('Scanning mode: ' + str(hashcat_mode))
     hashcat = Hashcat(working_folder, hashcat_url, hashcat_mode)
     log.info('Done.\n')
 
     while True:
-        log.info('Looking for a new task...')
+        log.info('Looking for a new task.')
         try:
             response = requests.post(server + '/agent/getTask', auth=(username, password))
         except requests.RequestException:
