@@ -101,7 +101,6 @@ class Hashcat:
                 log.info('Finished working on task.')
                 break
         process.terminate()
-        sleep(3)
 
 
 if __name__ == '__main__':
@@ -127,6 +126,7 @@ if __name__ == '__main__':
         if response.status_code == 200:
             log.info('Task found, starting scan...')
             hashcat.scan(response.json())
+            sleep(3)
         elif response.status_code == 204:
             log.warning('Task not found, will try again in 60 seconds.')
             sleep(60)
