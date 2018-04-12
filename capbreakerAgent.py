@@ -1,7 +1,6 @@
 import pip
 import logging
 import os
-import platform
 import shutil
 import subprocess
 from io import BytesIO
@@ -76,8 +75,7 @@ class Hashcat:
         self.found_phrase = (handshake['bssid'].replace(':', '') + ':').lower()
         self.found_phrase += (handshake['station'].replace(':', '') + ':').lower()
         self.found_phrase += handshake['essid']
-        suffix = '.exe ' if 'Windows' in platform.system() else '.bin '
-        commands = self.path + '/hashcat' + suffix + self.path + '/hs.hccapx' + ' -w ' + str(self.mode)
+        commands = self.path + '/hashcat.exe' + self.path + '/hs.hccapx' + ' -w ' + str(self.mode)
         commands += ' -m 2500 --force --potfile-disable --restore-disable --status --status-timer=20 --logfile-disable'
         for command in chunk['commands']:
             commands += ' ' + command
@@ -105,11 +103,8 @@ class Hashcat:
 
 if __name__ == '__main__':
     log.info('Cap breaker agent initializing...')
-    os_type = platform.system()
-    working_folder = os.getenv('APPDATA') if 'Windows' in os_type else os.path.expanduser('~')
-    working_folder += '\\.capbreaker'
+    working_folder = os.getenv('APPDATA') + '\\.capbreaker'
     log.info('Server: ' + server)
-    log.info('Local OS: ' + os_type)
     log.info('Local working folder is set to: ' + working_folder)
     log.info('Scanning mode: ' + str(hashcat_mode))
     hashcat = Hashcat(working_folder, hashcat_url, hashcat_mode)
