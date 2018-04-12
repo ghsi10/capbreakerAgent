@@ -32,7 +32,7 @@ class Hashcat:
         self.path = path
         self.url = url
         self.mode = mode
-        self.password = ''
+        self.password = None
         self.found_phrase = None
         self._init_working_folder()
 
@@ -70,6 +70,7 @@ class Hashcat:
 
     def scan(self, chunk):
         """ Start scan with hashcat """
+        self.password = ''
         handshake = chunk['handshake']
         self._create_handshake_file(handshake)
         self.found_phrase = (handshake['bssid'].replace(':', '') + ':').lower()
@@ -95,7 +96,7 @@ class Hashcat:
                 if self.found_phrase in output:
                     self.password = output.split(':')[4]
                 requests.post(server + '/agent/setResult', headers={'uuid': chunk['uuid']},
-                              data={'password': hashcat.password}, auth=(username, password))
+                              data={'password': self.password}, auth=(username, password))
                 log.info('Finished working on task.')
                 break
         process.terminate()
