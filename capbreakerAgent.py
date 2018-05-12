@@ -29,22 +29,22 @@ class Hashcat:
 
     def __init__(self, path, url=None, mode=3):
         """ Initialize parameters and working folder """
-        self.path = path
-        self.url = url
-        self.mode = mode
-        self.password = None
-        self.found_phrase = None
+        self._path = path
+        self._url = url
+        self._mode = mode
+        self._password = None
+        self._found_phrase = None
         self._init_working_folder()
 
     def _init_working_folder(self, force=False):
         """ Download and extract hashcat """
-        if os.path.exists(self.path) and not force:
+        if os.path.exists(self._path) and not force:
             return
         log.info('Downloading and extracting hashcat...')
-        shutil.rmtree(self.path, ignore_errors=True)
-        request = requests.get(self.url)
+        shutil.rmtree(self._path, ignore_errors=True)
+        request = requests.get(self._url)
         with ZipFile(BytesIO(request.content)) as zip_file:
-            zip_file.extractall(self.path)
+            zip_file.extractall(self._path)
 
     def _create_handshake_file(self, handshake):
         """ Create handshake file for hashcat in working folder """
@@ -65,22 +65,22 @@ class Hashcat:
         raw_bytes += bytearray.fromhex(handshake['eapol'])
         for i in range(eapol_len, 256):
             raw_bytes += bytearray.fromhex('00')
-        with open(self.path + '/hs.hccapx', 'wb') as handshake_file:
+        with open(self._path + '/hs.hccapx', 'wb') as handshake_file:
             handshake_file.write(raw_bytes)
 
     def scan(self, chunk):
         """ Start scan with hashcat """
-        self.password = ''
+        self._password = ''
         handshake = chunk['handshake']
         self._create_handshake_file(handshake)
-        self.found_phrase = (handshake['bssid'].replace(':', '') + ':').lower()
-        self.found_phrase += (handshake['station'].replace(':', '') + ':').lower()
-        self.found_phrase += handshake['essid']
-        commands = self.path + '/hashcat.exe ' + self.path + '/hs.hccapx' + ' -w ' + str(self.mode)
+        self._found_phrase = (handshake['bssid'].replace(':', '') + ':').lower()
+        self._found_phrase += (handshake['station'].replace(':', '') + ':').lower()
+        self._found_phrase += handshake['essid']
+        commands = self._path + '/hashcat.exe ' + self._path + '/hs.hccapx' + ' -w ' + str(self._mode)
         commands += ' -m 2500 --force --potfile-disable --restore-disable --status --status-timer=20 --logfile-disable'
         for command in chunk['commands']:
             commands += ' ' + command
-        process = subprocess.Popen(commands, cwd=self.path, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(commands, cwd=self._path, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         while True:
             output = process.stdout.readline().decode()
             if not output:
@@ -92,11 +92,11 @@ class Hashcat:
                                  auth=(username, password)).status_code != 200:
                     log.info('Stoped working on task.')
                     break
-            if 'Exhausted' in output or self.found_phrase in output:
-                if self.found_phrase in output:
-                    self.password = output.split(':')[4]
+            if 'Exhausted' in output or self._found_phrase in output:
+                if self._found_phrase in output:
+                    self._password = output.split(':')[4]
                 requests.post(server + '/agent/setResult', headers={'uuid': chunk['uuid']},
-                              data={'password': self.password}, auth=(username, password))
+                              data={'password': self._password}, auth=(username, password))
                 log.info('Finished working on task.')
                 break
         process.terminate()
