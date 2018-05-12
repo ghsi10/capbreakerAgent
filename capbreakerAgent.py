@@ -102,7 +102,7 @@ class Hashcat:
         process.terminate()
 
 
-if __name__ == '__main__':
+def main():
     log.info('Cap breaker agent initializing...')
     working_folder = os.getenv('APPDATA') + '\\.capbreaker'
     log.info('Server: ' + server)
@@ -130,3 +130,7 @@ if __name__ == '__main__':
             log.fatal('Unexpected error occurred. Exiting...')
             sleep(2)
             break
+
+
+if __name__ == '__main__':
+    main()
