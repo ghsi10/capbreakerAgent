@@ -10,16 +10,19 @@ from time import sleep
 try:
     import requests
 except ImportError:
-    pip.main(['install', 'requests'])
+    if hasattr(pip, 'main'):
+        pip.main(['install', 'requests'])
+    else:
+        pip._internal.main(['install', 'requests'])
     import requests
 
 username = 'admin'  # '[[${username}]]'
 password = 'admin'  # '[[${password}]]'
 server = 'http://127.0.0.1'  # '[[${server}]]'
-hashcat_url = 'http://caprecovery.kuchi.be/hashcat.zip'  # '[[${url}]]'
+hashcat_url = 'http://bloop/hashcat.zip'  # '[[${url}]]'
 hashcat_mode = 3
 
-logging.basicConfig(format='[%(asctime)s] %(levelname)-8s | %(message)s',
+logging.basicConfig(format='[%(asctime)s] %(levelname)-s | %(message)s',
                     datefmt='%d-%b-%Y %H:%M:%S', level=logging.INFO)
 log = logging.getLogger()
 
