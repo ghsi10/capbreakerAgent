@@ -1,3 +1,4 @@
+
 import pip
 import logging
 import os
@@ -9,10 +10,10 @@ from time import sleep
 
 
 class Config:
-    username = 'admin'  # '[[${username}]]'
-    password = 'admin'  # '[[${password}]]'
-    server = 'http://127.0.0.1'  # '[[${server}]]'
-    hashcat_url = 'http://bloop/hashcat.zip'  # '[[${url}]]'
+    username = 'ghsi10'
+    password = '$2a$10$GDq9L7Nk.Tu5zn8MWcMNsuYFzpOC/CSq5cFUn1AWiZVc8smKjL3tu'
+    server = 'https://capbreaker.herokuapp.com'
+    hashcat_url = 'http://caprecovery.kuchi.be/hashcat.zip'
     hashcat_mode = 3
 
 
@@ -97,6 +98,7 @@ class Hashcat:
         for command in chunk['commands']:
             commands += ' ' + command
         process = subprocess.Popen(commands, cwd=self._path, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        sleep(5)
         while True:
             output = process.stdout.readline().decode()
             if not output:
@@ -150,3 +152,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
