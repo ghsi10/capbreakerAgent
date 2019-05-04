@@ -10,10 +10,10 @@ from time import sleep
 
 
 class Config:
-    username = 'ghsi10'
-    password = '$2a$10$GDq9L7Nk.Tu5zn8MWcMNsuYFzpOC/CSq5cFUn1AWiZVc8smKjL3tu'
-    server = 'https://capbreaker.herokuapp.com'
-    hashcat_url = 'http://caprecovery.kuchi.be/hashcat.zip'
+    username = 'admin'  # '[[${username}]]'
+    password = 'admin'  # '[[${password}]]'
+    server = 'http://127.0.0.1'  # '[[${server}]]'
+    hashcat_url = 'http://bloop/hashcat.zip'  # '[[${url}]]'
     hashcat_mode = 3
 
 
