@@ -91,7 +91,7 @@ class Hashcat:
         self._create_handshake_file(handshake, hash_type)
         found_phrase = (handshake['bssid'].replace(':', '') + delimiter).lower()
         found_phrase += (handshake['station'].replace(':', '') + delimiter).lower()
-        commands = self._path + '/hashcat.exe ' + self._path + '/hs.hccapx' + ' -w ' + str(self._mode)
+        commands = self._path + '/hashcat.exe ' + self._path + '/hs.hccapx -w ' + str(self._mode)
         commands += ' -m ' + hash_type + ' --force --potfile-disable --restore-disable'
         commands += ' --status --status-timer=20 --logfile-disable --self-test-disable'
         for command in chunk['commands']:
