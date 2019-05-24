@@ -91,7 +91,8 @@ class Hashcat:
         self._create_handshake_file(handshake, hash_type)
         found_phrase = (handshake['bssid'].replace(':', '') + delimiter).lower()
         found_phrase += (handshake['station'].replace(':', '') + delimiter).lower()
-        commands = self._path + '/hashcat.exe ' + self._path + '/hs.hccapx -w ' + str(self._mode) + ' -m ' + hash_type
+        commands = self._path + '/hashcat.exe ' if os.name == 'nt' else self._path + '/hashcat.bin '
+        commands += self._path + '/hs.hccapx -w ' + str(self._mode) + ' -m ' + hash_type
         commands += ' --force --potfile-disable --restore-disable --status --status-timer=20 --logfile-disable'
         for command in chunk['commands']:
             commands += ' ' + command
@@ -106,7 +107,7 @@ class Hashcat:
             if 'Running' in output:
                 if requests.post(Config.server + '/agent/keepAlive', headers={'uuid': chunk['uuid']},
                                  auth=(Config.username, Config.password)).status_code != 200:
-                    log.info('Stoped working on task.')
+                    log.info('Stopped working on task.')
                     break
             if 'Exhausted' in output or found_phrase in output:
                 if found_phrase in output:
@@ -120,7 +121,8 @@ class Hashcat:
 
 def main():
     log.info('Cap breaker agent initializing...')
-    working_folder = os.getenv('APPDATA') + '\\.capbreaker'
+    working_folder = os.getenv('APPDATA') + '\\.capbreaker' if os.name == 'nt' else os.path.expanduser(
+        '~') + '/.capbreaker'
     log.info('Server: ' + Config.server)
     log.info('Local working folder is set to: ' + working_folder)
     log.info('Scanning mode: ' + str(Config.hashcat_mode))
